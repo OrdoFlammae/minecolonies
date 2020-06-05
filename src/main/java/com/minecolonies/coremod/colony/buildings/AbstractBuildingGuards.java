@@ -12,6 +12,8 @@ import com.minecolonies.api.colony.guardtype.registry.IGuardTypeDataManager;
 import com.minecolonies.api.colony.guardtype.registry.IGuardTypeRegistry;
 import com.minecolonies.api.colony.jobs.IJob;
 import com.minecolonies.api.entity.ai.citizen.guards.GuardTask;
+import com.minecolonies.api.entity.ai.statemachine.AIOneTimeEventTarget;
+import com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState;
 import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.entity.citizen.Skill;
 import com.minecolonies.api.util.BlockPosUtil;
@@ -23,6 +25,7 @@ import com.minecolonies.coremod.Network;
 import com.minecolonies.coremod.client.gui.WindowHutGuardTower;
 import com.minecolonies.coremod.colony.jobs.AbstractJobGuard;
 import com.minecolonies.coremod.entity.ai.citizen.guard.AbstractEntityAIGuard;
+import com.minecolonies.coremod.items.ItemBannerRallyGuards;
 import com.minecolonies.coremod.network.messages.client.colony.building.guard.GuardMobAttackListMessage;
 import com.minecolonies.coremod.util.AttributeModifierUtils;
 import net.minecraft.entity.EntityClassification;
@@ -31,6 +34,7 @@ import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ArmorItem;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.NBTUtil;
@@ -146,6 +150,11 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
      * The player the guard has been set to follow.
      */
     private PlayerEntity followPlayer;
+
+    /**
+     * The player the guard has been set to rally to.
+     */
+    private PlayerEntity rallyPlayer;
 
     /**
      * Indicates if in Follow mode what type of follow is use. True - tight grouping, false - lose grouping.
@@ -400,22 +409,35 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
         this.markDirty();
     }
 
-    /**
-     * Entity of player to follow.
-     *
-     * @return the PlayerEntity reference.
-     */
     @Override
-    public PlayerEntity getFollowPlayer()
+    public PlayerEntity getPlayerToFollowOrRally()
     {
-        return followPlayer;
+        return getPlayerToRally() != null ? getPlayerToRally() : followPlayer;
     }
 
-    //// ---- Overrides ---- \\\\
+    @Override
+    public PlayerEntity getPlayerToRally()
+    {
+        if (rallyPlayer == null)
+        {
+            return null;
+        }
 
-    //// ---- Abstract Methods ---- \\\\
+        int size = rallyPlayer.inventory.getSizeInventory();
+        for (int i = 0; i < size; i++)
+        {
+            ItemStack stack = rallyPlayer.inventory.getStackInSlot(i);
+            if (stack.getItem() instanceof ItemBannerRallyGuards)
+            {
+                if (((ItemBannerRallyGuards) (stack.getItem())).isActiveForGuardTower(stack, this))
+                {
+                    return rallyPlayer;
+                }
+            }
+        }
 
-    //// ---- Abstract Methods ---- \\\\
+        return null;
+    }
 
     /**
      * The guards which arrived at the patrol positions
@@ -486,11 +508,6 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
         arrivedAtPatrol.clear();
     }
 
-    /**
-     * Returns a patrolTarget to patrol to.
-     *
-     * @return the position of the next target.
-     */
     @Override
     @Nullable
     public BlockPos getNextPatrolTarget(final boolean newTarget)
@@ -543,11 +560,6 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
         return lastPatrolPoint;
     }
 
-    /**
-     * Getter for the patrol distance the guard currently has.
-     *
-     * @return The distance in whole numbers.
-     */
     @Override
     public int getPatrolDistance()
     {
@@ -788,11 +800,6 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
         }
     }
 
-    /**
-     * Get the guard's {@link GuardType}.
-     *
-     * @return The guardType of the guard.
-     */
     @Override
     public GuardType getGuardType()
     {
@@ -804,11 +811,6 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
         return this.job;
     }
 
-    /**
-     * Set the guard's {@link GuardType}.
-     *
-     * @param job The guardType to set.
-     */
     @Override
     public void setGuardType(final GuardType job)
     {
@@ -841,132 +843,72 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
         return new ArrayList<>(patrolTargets);
     }
 
-    /**
-     * Get the guard's RetrieveOnLowHeath.
-     *
-     * @return if so.
-     */
     @Override
     public boolean shallRetrieveOnLowHealth()
     {
         return retrieveOnLowHealth;
     }
 
-    /**
-     * Set the guard's RetrieveOnLowHealth.
-     *
-     * @param retrieve true if retrieve.
-     */
     @Override
     public void setRetrieveOnLowHealth(final boolean retrieve)
     {
         this.retrieveOnLowHealth = retrieve;
     }
 
-    /**
-     * Get whether the guard should patrol manually.
-     *
-     * @return if so.
-     */
     @Override
     public boolean shallPatrolManually()
     {
         return patrolManually;
     }
 
-    /**
-     * Set whether the guard should patrol manually.
-     *
-     * @param patrolManually true if manual.
-     */
     @Override
     public void setPatrolManually(final boolean patrolManually)
     {
         this.patrolManually = patrolManually;
     }
 
-    /**
-     * Whether the player will assign guards manually or not.
-     *
-     * @return true if so
-     */
     @Override
     public boolean shallAssignManually()
     {
         return assignManually;
     }
 
-    /**
-     * Set whether the player is assigning guards manually.
-     *
-     * @param assignManually true if so
-     */
     @Override
     public void setAssignManually(final boolean assignManually)
     {
         this.assignManually = assignManually;
     }
 
-    /**
-     * Returns whether tight grouping in Follow mode is being used.
-     *
-     * @return whether tight grouping is being used.
-     */
     @Override
     public boolean isTightGrouping()
     {
         return tightGrouping;
     }
 
-    /**
-     * Set whether to use tight grouping or lose grouping.
-     *
-     * @param tightGrouping - indicates if you are using tight grouping
-     */
     @Override
     public void setTightGrouping(final boolean tightGrouping)
     {
         this.tightGrouping = tightGrouping;
     }
 
-    /**
-     * Get the position the guard should guard.
-     *
-     * @return the {@link BlockPos} of the guard position.
-     */
     @Override
     public BlockPos getGuardPos()
     {
         return guardPos;
     }
 
-    /**
-     * Set where the guard should guard.
-     *
-     * @param guardPos the {@link BlockPos} to guard.
-     */
     @Override
     public void setGuardPos(final BlockPos guardPos)
     {
         this.guardPos = guardPos;
     }
 
-    /**
-     * Get the Map of mobs to attack.
-     *
-     * @return the map.
-     */
     @Override
     public Map<ResourceLocation, MobEntryView> getMobsToAttack()
     {
         return mobsToAttack;
     }
 
-    /**
-     * Set the Map of mobs to attack.
-     *
-     * @param list The new map.
-     */
     @Override
     public void setMobsToAttack(final List<MobEntryView> list)
     {
@@ -977,28 +919,22 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
         }
     }
 
-    /**
-     * Gets the player to follow.
-     *
-     * @return the entity player.
-     */
     @Override
-    public BlockPos getPlayerToFollow()
+    public BlockPos getPositionToFollow()
     {
+        if (rallyPlayer != null && rallyPlayer.getPosition() != BlockPos.ZERO)
+        {
+            return rallyPlayer.getPosition();
+        }
+
         if (task.equals(GuardTask.FOLLOW) && followPlayer != null)
         {
             return followPlayer.getPosition();
         }
-        task = GuardTask.GUARD;
-        markDirty();
+
         return this.getPosition();
     }
 
-    /**
-     * Sets the player to follow.
-     *
-     * @param player the player to follow.
-     */
     @Override
     public void setPlayerToFollow(final PlayerEntity player)
     {
@@ -1026,7 +962,59 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
                 }
             }
         }
+
         this.followPlayer = player;
+
+        for (final ICitizenData iCitizenData : getAssignedCitizen())
+        {
+            AbstractJobGuard job = iCitizenData.getJob(AbstractJobGuard.class);
+            if (job != null)
+            {
+                job.getWorkerAI().registerTarget(new AIOneTimeEventTarget(AIWorkerState.DECIDE));
+            }
+        }
+    }
+
+    @Override
+    public void setPlayerToRally(final PlayerEntity player)
+    {
+        // TODO: Add Glow effect to player
+        /*
+        if (this.getColony().getWorld() != null)
+        {
+            if (rallyPlayer != null)
+            {
+                try
+                {
+                    this.getColony()
+                      .getWorld()
+                      .getScoreboard()
+                      .removePlayerFromTeam(rallyPlayer.getScoreboardName(), this.getColony().getWorld().getScoreboard().getTeam(TEAM_COLONY_NAME + getColony().getID()));
+                    player.removePotionEffect(GLOW_EFFECT);
+                }
+                catch (final Exception e)
+                {
+                    Log.getLogger().warn("Unable to remove player " + rallyPlayer.getName().getFormattedText() + " from team " + TEAM_COLONY_NAME + getColony().getID());
+                }
+            }
+
+            this.getColony()
+              .getWorld()
+              .getScoreboard()
+              .addPlayerToTeam(player.getScoreboardName(), new ScorePlayerTeam(this.getColony().getWorld().getScoreboard(), TEAM_COLONY_NAME + getColony().getID()));
+            player.addPotionEffect(new EffectInstance(GLOW_EFFECT, GLOW_EFFECT_DURATION_TEAM, GLOW_EFFECT_MULTIPLIER, false, false));//no reason for particales
+        }
+        */
+        this.rallyPlayer = player;
+
+        for (final ICitizenData iCitizenData : getAssignedCitizen())
+        {
+            AbstractJobGuard job = iCitizenData.getJob(AbstractJobGuard.class);
+            if (job != null)
+            {
+                job.getWorkerAI().registerTarget(new AIOneTimeEventTarget(AIWorkerState.DECIDE));
+            }
+        }
     }
 
     /**
