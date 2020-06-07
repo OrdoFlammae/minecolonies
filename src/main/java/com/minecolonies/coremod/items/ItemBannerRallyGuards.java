@@ -118,7 +118,7 @@ public class ItemBannerRallyGuards extends AbstractItemMinecolonies
 
         if (!worldIn.isRemote)
         {
-            if (playerIn.isShiftKeyDown())
+            if (playerIn.isSneaking())
             {
                 toggleBanner(banner, playerIn, worldIn);
             }
@@ -129,7 +129,7 @@ public class ItemBannerRallyGuards extends AbstractItemMinecolonies
             }
         }
 
-        return ActionResult.func_226248_a_(banner);
+        return ActionResult.resultSuccess(banner);
     }
 
     @Override
