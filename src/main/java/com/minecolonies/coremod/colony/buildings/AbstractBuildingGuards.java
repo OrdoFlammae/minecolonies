@@ -968,7 +968,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
         for (final ICitizenData iCitizenData : getAssignedCitizen())
         {
             AbstractJobGuard job = iCitizenData.getJob(AbstractJobGuard.class);
-            if (job != null)
+            if (job != null && job.getWorkerAI() != null)
             {
                 job.getWorkerAI().registerTarget(new AIOneTimeEventTarget(AIWorkerState.DECIDE));
             }
@@ -1010,7 +1010,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
         for (final ICitizenData iCitizenData : getAssignedCitizen())
         {
             AbstractJobGuard job = iCitizenData.getJob(AbstractJobGuard.class);
-            if (job != null)
+            if (job != null && job.getWorkerAI() != null)
             {
                 job.getWorkerAI().registerTarget(new AIOneTimeEventTarget(AIWorkerState.DECIDE));
             }
