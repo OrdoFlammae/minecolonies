@@ -53,7 +53,7 @@ import com.minecolonies.api.util.Log;
 /**
  * The lumberjack AI class.
  */
-public class EntityAIWorkLumberjack extends AbstractEntityAICrafting<JobLumberjack>
+public class EntityAIWorkLumberjack extends AbstractEntityAICrafting<JobLumberjack, BuildingLumberjack>
 {
     /**
      * The render name to render logs.
@@ -106,7 +106,6 @@ public class EntityAIWorkLumberjack extends AbstractEntityAICrafting<JobLumberja
      * Number of ticks to wait for tree.
      */
     private static final int TIMEOUT_DELAY      = 10;
-    private static final int LEAVES_RADIUS      = 1;
     /**
      * Time in ticks to wait before rechecking if there are trees in the range of the lumberjack.
      */
@@ -186,7 +185,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAICrafting<JobLumberja
     }
 
     @Override
-    public Class<? extends BuildingLumberjack> getExpectedBuildingClass()
+    public Class<BuildingLumberjack> getExpectedBuildingClass()
     {
         return BuildingLumberjack.class;
     }
@@ -437,7 +436,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAICrafting<JobLumberja
                 return getState();
             }
 
-            final BuildingLumberjack building = getOwnBuilding(BuildingLumberjack.class);
+            final BuildingLumberjack building = getOwnBuilding();
             if (building.shouldReplant())
             {
                 plantSapling();
@@ -756,36 +755,6 @@ public class EntityAIWorkLumberjack extends AbstractEntityAICrafting<JobLumberja
                              .expand(RANGE_HORIZONTAL_PICKUP, RANGE_VERTICAL_PICKUP, RANGE_HORIZONTAL_PICKUP)
                              .expand(-RANGE_HORIZONTAL_PICKUP, -RANGE_VERTICAL_PICKUP, -RANGE_HORIZONTAL_PICKUP));
         }
-    }
-
-    /**
-     * Utility method to check for leaves around the citizen.
-     * <p>
-     * Will report the location of the first leaves block it finds.
-     *
-     * @return a leaves block or null if none found
-     */
-    private BlockPos findNearLeaves()
-    {
-        final int playerX = worker.getPosition().getX();
-        final int playerY = worker.getPosition().getY() + 1;
-        final int playerZ = worker.getPosition().getZ();
-        final int radius = LEAVES_RADIUS;
-        for (int x = playerX - radius; x < playerX + radius; x++)
-        {
-            for (int y = playerY - radius; y < playerY + radius; y++)
-            {
-                for (int z = playerZ - radius; z < playerZ + radius; z++)
-                {
-                    @NotNull final BlockPos pos = new BlockPos(x, y, z);
-                    if (world.getBlockState(pos).getBlock().isIn(BlockTags.LEAVES))
-                    {
-                        return pos;
-                    }
-                }
-            }
-        }
-        return null;
     }
 
     private int findSaplingSlot()

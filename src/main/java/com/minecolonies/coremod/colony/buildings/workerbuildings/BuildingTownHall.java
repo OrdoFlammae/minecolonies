@@ -40,7 +40,7 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
     /**
      * List of permission events of the colony.
      */
-    private final LinkedList<PermissionEvent> permissionEvents = new LinkedList();
+    private final LinkedList<PermissionEvent> permissionEvents = new LinkedList<>();
 
     /**
      * Instantiates the building.
@@ -165,7 +165,7 @@ public class BuildingTownHall extends AbstractBuilding implements ITownHall
         /**
          * List of permission events of the colony.
          */
-        private final List<PermissionEvent> permissionEvents = new LinkedList();
+        private final List<PermissionEvent> permissionEvents = new LinkedList<>();
 
         /**
          * If the player is allowed to do townHall teleport.
